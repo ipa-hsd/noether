@@ -14,6 +14,7 @@
 #include <pcl/conversions.h>
 #include <pcl/surface/vtk_smoothing/vtk_utils.h>  // MESH conversion utils VTK<->PCL
 #include <pcl/surface/mls.h>
+#include <pcl/surface/gp3.h>
 
 #include <pcl/surface/grid_projection.h> // surface reconstruction by Rosie Li based on:
 // Polygonizing Extremal Surfaces with Manifold Guarantees, Ruosi Li, et. al.
@@ -533,11 +534,13 @@ static pcl::PointCloud<pcl::Normal>::Ptr estimateNormals(pcl::PointCloud<pcl::Po
   pcl::PointCloud<pcl::Normal>::Ptr normals ( new pcl::PointCloud<pcl::Normal>() );
 
   pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> netmp;
+  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+  tree->setInputCloud (cloud);
+  netmp.setSearchMethod (tree);
+  netmp.setKSearch (20);
   netmp.setInputCloud (cloud);
-  netmp.setViewPoint(view_point.x, view_point.y , view_point.z);
-  netmp.setRadiusSearch (radius);
   netmp.compute(*normals);
-
+  
   return normals;
 }
 
@@ -556,23 +559,31 @@ pcl::PointCloud<pcl::PointNormal>::Ptr pclEstimateNormals(pcl::PointCloud<pcl::P
 pcl::PolygonMesh pclGridProjectionMesh(pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud, double resolution,
                                        int padding_size, int max_binary_searc_level, int nearest_neighbors)
 {
-  // Perform Grid Projection point cloud meshing (Polygonizing Extremal Surfaces with Manifold Guarantees, Ruosi Li, et. al.)
-  pcl::GridProjection<pcl::PointNormal> grid_surf;
+  // Initialize objects
+  pcl::GreedyProjectionTriangulation<pcl::PointNormal> gp3;
   pcl::PolygonMesh output_mesh;
+  
+  // Create search tree*
   pcl::search::KdTree<pcl::PointNormal>::Ptr tree2 (new pcl::search::KdTree<pcl::PointNormal>);
   tree2->setInputCloud(cloud);
+  
+  // Set the maximum distance between connected points (maximum edge length)
+  gp3.setSearchRadius (0.025);
 
-  // Set parameters
-  grid_surf.setResolution(resolution);  // this parameter is the main one which affects the smoothness of the mesh
-  grid_surf.setPaddingSize(padding_size);
-  grid_surf.setMaxBinarySearchLevel(max_binary_searc_level); // default is 10
-  grid_surf.setNearestNeighborNum(nearest_neighbors); // default is 50
-  grid_surf.setSearchMethod(tree2);
+  // Set typical values for the parameters
+  gp3.setMu (2.5);
+  gp3.setMaximumNearestNeighbors (100);
+  gp3.setMaximumSurfaceAngle(M_PI/4); // 45 degrees
+  gp3.setMinimumAngle(M_PI/18); // 10 degrees
+  gp3.setMaximumAngle(2*M_PI/3); // 120 degrees
+  gp3.setNormalConsistency(false);
+  
+  // Get result
+  gp3.setInputCloud (cloud);
+  gp3.setSearchMethod (tree2);
+  gp3.reconstruct (output_mesh);
 
-  // Mesh
-  grid_surf.setInputCloud(cloud);
-  grid_surf.reconstruct(output_mesh);
-  return output_mesh;
+  return output_mesh; 
 }
 
 void pclEncodeMeshAndNormals(const pcl::PolygonMesh &pcl_mesh, vtkSmartPointer<vtkPolyData> &vtk_mesh, double radius,
