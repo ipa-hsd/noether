@@ -539,6 +539,7 @@ static pcl::PointCloud<pcl::Normal>::Ptr estimateNormals(pcl::PointCloud<pcl::Po
   netmp.setSearchMethod (tree);
   netmp.setKSearch (20);
   netmp.setInputCloud (cloud);
+  netmp.setViewPoint(0, 0, 0.05);
   netmp.compute(*normals);
   
   return normals;
