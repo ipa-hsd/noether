@@ -6,6 +6,7 @@
   <node name="noether" launch-prefix="$(arg launch_prefix)" type="noether_node" pkg="noether" output="screen" required="true">
     <!--Loads a particular test file: pcd or stl -->
     <param name="filename" value="$(arg filename)" type="string"/>
+    <param name="debug_on" value="true" type="bool"/>    
     <rosparam command="load" file="$(arg tool)"/>
   </node>
 
