@@ -489,6 +489,10 @@ namespace tool_path_planner
           vtkSmartPointer<vtkPolyData> new_line = vtkSmartPointer<vtkPolyData>::New();
           vtkSmartPointer<vtkPoints> new_points = vtkSmartPointer<vtkPoints>::New();
           intersection_line->GetPoints()->GetPoints(ids, new_points);
+          std::cout << "new_points: " << new_points->GetNumberOfPoints() << std::endl;
+          if(new_points->GetNumberOfPoints() == 1) {
+            continue;
+          }
           resamplePoints(new_points);
           new_line->SetPoints(new_points);
 
@@ -1000,6 +1004,7 @@ namespace tool_path_planner
     spline->SetPoints(points);
 
     int num_line_pts = points->GetNumberOfPoints()/2.0;
+    std::cout << "num line pts: " << num_line_pts << std::endl;
 
     double u[3], pt[3], d[9]; // u - search point, pt - resulting point, d - unused but still required
     u[0] = u[1] = u[2] = 0;
