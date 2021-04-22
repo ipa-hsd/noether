@@ -13,4 +13,5 @@
     </rosparam>
   </node>
   <include file="$(find noether)/launch/tool_path_planner_server.launch"/>
+  <node type="rviz" name="rviz" pkg="rviz"/>
 </launch>
